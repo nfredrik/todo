@@ -28,8 +28,8 @@
     <ul>
         {% for task in tasks %}
         <li>
-            {{ task.content }}
-            <button onclick="deleteTask({{ task.id }})">Delete</button>
+            {{ task }}
+            <button onclick="deleteTask({{ loop.index0 }})">Delete</button>
         </li>
         {% endfor %}
     </ul>

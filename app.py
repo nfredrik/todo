@@ -1,30 +1,47 @@
-from flask import Flask, render_template, request, redirect, url_for, Response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, Response
+from flask_sqlalchemy import SQLAlchemy
+from typing import Tuple
 
-app: Flask = Flask(__name__)
+app = Flask(__name__)
 
-# In-memory list to store tasks
-tasks: list = []
+# Configure the SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///todo.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db : SQLAlchemy= SQLAlchemy(app=app)
 
-@app.route(rule = '/',  methods=['GET'])
+# Create a Task model
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(200), nullable=False)
+
+# Create the database
+with app.app_context():
+    db.create_all()
+
+@app.route('/')
 def index() -> str:
-     tmp : str = render_template('index.html', tasks=tasks)
-     return tmp   
+    tasks: Task = Task.query.all()
+    result: str = render_template(template_name_or_list='index.html', tasks=tasks)
+    return result
 
-@app.route( rule = '/add', methods=['POST'])
+@app.route('/add', methods=['POST'])
 def add_task() -> Response:
-    task: str = request.form.get('task')
-    if task:
-        tasks.append(task)
-    response: Response = redirect(url_for('index'))
+    task_content :str = request.form.get(key='task')
+    if task_content:
+        new_task : Task = Task(content=task_content)
+        db.session.add(instance=new_task)
+        db.session.commit()
+    response : Response =  redirect(location=url_for('index'))
     return response
 
-
-@app.route(rule= '/delete/<int:task_id>', methods=['DELETE'])
+@app.route('/delete/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id) -> Response:
-    if 0 <= task_id < len(tasks):
-        tasks.pop(task_id)
-    tmp: Response =  jsonify({"status": "success", "task_id": task_id}), 200
-    return tmp
+    task : Task = Task.query.get(task_id)
+    if task:
+        db.session.delete(instance=task)
+        db.session.commit()
+    response : Response =  jsonify({"status": "success", "task_id": task_id})
+    return response, 200
 
 if __name__ == '__main__':
     app.run(debug=True)
