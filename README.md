@@ -38,4 +38,4 @@ This Flask application allows users to manage a to-do list by adding and deletin
 ## Example Usage
 1. **Run the Application**:
    ```bash
-   python app.py
+   flask run --debug
